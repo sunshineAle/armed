@@ -13,9 +13,10 @@ import CadastroRemedio from './janelas/CadastroRemedio.vue'
 import CadastroRotina from './janelas/CadastroRotina.vue'
 import Detalhe from './janelas/Detalhe.vue'
 import Alarme from './janelas/Alarme.vue'
+import Backup from './janelas/Backup.vue'
 
 const TELAS = { hoje: Hoje, remedios: Remedios, rotinas: Rotinas, ajustes: Ajustes }
-const JANELAS = { mais: Mais, remedio: CadastroRemedio, rotina: CadastroRotina, detalhe: Detalhe }
+const JANELAS = { mais: Mais, remedio: CadastroRemedio, rotina: CadastroRotina, detalhe: Detalhe, backup: Backup }
 const itens = [
   { id: 'hoje', nome: 'Hoje', icone: 'hoje' },
   { id: 'remedios', nome: 'Remédios', icone: 'capsula' },
@@ -55,11 +56,11 @@ watchEffect(() => {
         </button>
       </template>
     </nav>
-    <component :is="JANELAS[j.nome]" v-for="j in ui.janelas" :key="j.id" v-bind="j.props" />
     <Alarme v-if="ui.alarme" :data="ui.alarme.data" :hora="ui.alarme.hora" />
     <div v-if="ui.aviso" class="aviso" role="status">
       <span>{{ ui.aviso.texto }}</span>
       <button v-if="ui.aviso.acao" type="button" @click="ui.aviso.acao.fazer(); ui.aviso = null">{{ ui.aviso.acao.nome }}</button>
     </div>
   </div>
+  <component :is="JANELAS[j.nome]" v-for="j in ui.janelas" :key="j.id" v-bind="j.props" />
 </template>

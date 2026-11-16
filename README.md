@@ -23,6 +23,7 @@ npm run build     # compila para dist/
 | `src/nucleo/motor.js` | Motor de lembrete compartilhado (repetição, situação, semana, estoque, SOS) |
 | `src/nucleo/dados.js` | Guarda os dados no aparelho; marcar, desfazer, adiar |
 | `src/nucleo/avisos.js` | Relógio, notificação discreta e abertura do alarme |
+| `src/nucleo/backup.js` | Backup em arquivo criptografado (PBKDF2-SHA-256, 600 mil voltas + AES-GCM 256). A senha nunca é guardada |
 | `src/nucleo/demo.js` | Dados fictícios |
 | `src/telas/` | Hoje, Remédios, Rotinas, Ajustes, Entrada |
 | `src/janelas/` | Janelas por cima: cadastros, detalhe, "+", alarme |
@@ -34,5 +35,5 @@ O Airmed é organizador e lembrete. Nunca calcula, sugere nem bloqueia dose. SOS
 ## Limites desta versão
 
 - O lembrete só toca com o app aberto no navegador. Alarme em tela cheia com o celular bloqueado: só na capa Android.
-- Sem backup, sem Google Agenda, só o tema Ervas.
+- Backup só em arquivo (manual). Sem envio automático para nuvem, sem Google Agenda, só o tema Ervas.
 - Entrada, janela do "+" e Ajustes são provisórios (telas ainda não desenhadas).

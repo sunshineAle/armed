@@ -8,6 +8,7 @@ export function irPara(tela) {
 }
 // Janela por cima (sobe de baixo). Aceita uma janela sobre a outra.
 export function abrir(nome, props = {}) {
+  ui.aviso = null
   ui.janelas.push({ nome, props, id: Date.now() + Math.random() })
 }
 export function fechar() {

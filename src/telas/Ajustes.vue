@@ -1,15 +1,22 @@
 <script setup>
 // Ajustes (provisório: a tela definitiva ainda vai ser desenhada).
 import { ref } from 'vue'
-import { estado, comecar, apagarTudo, hoje, agoraMin } from '../nucleo/dados.js'
+import { computed } from 'vue'
+import { estado, comecar, apagarTudo, hoje, agoraMin, relogio } from '../nucleo/dados.js'
+import { diasSemBackup } from '../nucleo/backup.js'
 import { diaComSituacao } from '../nucleo/motor.js'
 import { permissao, pedirPermissao, notificar } from '../nucleo/avisos.js'
-import { ui, avisar, irPara } from '../nucleo/ui.js'
+import { ui, avisar, irPara, abrir } from '../nucleo/ui.js'
 import { horaDe } from '../nucleo/tempo.js'
 import Icone from '../componentes/Icone.vue'
 
 const perm = ref(permissao())
 const confirma = ref('')
+const ultimoBackup = computed(() => {
+  const d = diasSemBackup(estado.backup?.ultimo, relogio.agora)
+  if (d === null) return 'Nunca'
+  return d === 0 ? 'Hoje' : d === 1 ? 'Ontem' : `Há ${d} dias`
+})
 const TEXTO = { granted: 'Ligadas', denied: 'Bloqueadas no navegador', default: 'Desligadas', unsupported: 'Este navegador não tem notificações' }
 async function ligar() {
   perm.value = await pedirPermissao()
@@ -26,7 +33,7 @@ function zerar() { apagarTudo(); confirma.value = '' }
 </script>
 
 <template>
-  <header class="cabeca"><div><small>Versão de teste 0.1</small><h1>Ajustes</h1></div></header>
+  <header class="cabeca"><div><small>Versão de teste 0.2</small><h1>Ajustes</h1></div></header>
 
   <section class="grupo">
     <span class="rotulo">Aparência · tema Ervas</span>
@@ -53,19 +60,31 @@ function zerar() { apagarTudo(); confirma.value = '' }
   </section>
 
   <section class="grupo">
+    <span class="rotulo">Backup</span>
+    <div class="cartao lista-linhas">
+      <div class="linha-escolha">Último backup<b :style="{ color: ultimoBackup === 'Nunca' ? 'var(--apoio)' : 'var(--primaria)' }">{{ ultimoBackup }}</b></div>
+    </div>
+    <div class="linha-botoes">
+      <button type="button" class="botao cheio cresce" @click="abrir('backup', { modo: 'fazer' })">Fazer backup</button>
+      <button type="button" class="botao contorno cresce" @click="abrir('backup', { modo: 'restaurar' })">Restaurar</button>
+    </div>
+    <p class="nota">O backup é um arquivo trancado com a sua senha. O Airmed lembra quando passar uma semana sem backup.</p>
+  </section>
+
+  <section class="grupo">
     <span class="rotulo">Dados deste aparelho</span>
     <div class="cartao lista-linhas">
       <button type="button" class="linha-escolha" @click="confirma = 'demo'">Trocar tudo por dados fictícios<Icone nome="direita" :tam="18" style="margin-left:auto" /></button>
       <button type="button" class="linha-escolha" style="color:var(--atrasado)" @click="confirma = 'zerar'">Apagar tudo e começar do zero<Icone nome="direita" :tam="18" style="margin-left:auto" /></button>
     </div>
     <div v-if="confirma" class="cartao confirma">
-      <p><strong>{{ confirma === 'demo' ? 'Trocar por dados fictícios?' : 'Apagar tudo?' }}</strong> O que está cadastrado neste aparelho será apagado. Ainda não existe backup nesta versão.</p>
+      <p><strong>{{ confirma === 'demo' ? 'Trocar por dados fictícios?' : 'Apagar tudo?' }}</strong> O que está cadastrado neste aparelho será apagado. Se quiser guardar, faça um backup antes.</p>
       <div class="linha-botoes">
         <button type="button" class="botao suave cresce" @click="confirma = ''">Manter</button>
         <button type="button" class="botao perigo cresce" @click="confirma === 'demo' ? demo() : zerar()">{{ confirma === 'demo' ? 'Trocar' : 'Apagar' }}</button>
       </div>
     </div>
-    <p class="nota">Tudo fica guardado só neste navegador. Nada é enviado para servidor. Backup e restauração entram numa próxima versão.</p>
+    <p class="nota">Tudo fica guardado só neste navegador. Nada é enviado para servidor.</p>
   </section>
 
   <section class="grupo">

@@ -5,10 +5,18 @@ import { diaComSituacao, resumoSemana, fimDaJanela } from '../nucleo/motor.js'
 import { minutos, deMin, dataLonga, diaSemana, horaDe, horaReal, duracao } from '../nucleo/tempo.js'
 import { forma } from '../nucleo/formas.js'
 import { abrir, avisar } from '../nucleo/ui.js'
+import { diasSemBackup } from '../nucleo/backup.js'
 import Icone from '../componentes/Icone.vue'
 import Anel from '../componentes/Anel.vue'
 
 const feitosAbertos = ref(false)
+// Lembrete de backup: depois de uma semana sem (ou nunca), para quem tem dados de verdade.
+const lembreteBackup = computed(() => {
+  if (estado.demo || !(estado.remedios.length + estado.rotinas.length)) return ''
+  const d = diasSemBackup(estado.backup?.ultimo, relogio.agora)
+  if (d === null) return 'Você ainda não fez backup. Se este aparelho se perder, os dados vão junto.'
+  return d >= 7 ? `Faz ${d} dias que você não faz backup.` : ''
+})
 const itens = computed(() => diaComSituacao(estado, hoje.value, hoje.value, agoraMin.value))
 const resolvido = (s) => s === 'feito' || s === 'pulado'
 const total = computed(() => itens.value.length)
@@ -109,6 +117,12 @@ const icone = (l) => (l.tipo === 'rem' ? 'capsula' : 'rotina')
     <div><small>{{ dataLonga(hoje) }}</small><h1>Hoje</h1></div>
     <span class="num apoio hora-agora">{{ horaReal(horaDe(relogio.agora)) }}</span>
   </header>
+
+  <div v-if="lembreteBackup" class="faixa info solta lembrete-backup">
+    <Icone nome="info" :tam="16" :traco="1.6" />
+    <span style="flex:1">{{ lembreteBackup }}</span>
+    <button type="button" @click="abrir('backup', { modo: 'fazer' })">Fazer backup</button>
+  </div>
 
   <div v-if="!total && !feitos.length" class="cartao vazio">
     <strong>Nada marcado para hoje</strong>
@@ -211,6 +225,8 @@ const icone = (l) => (l.tipo === 'rem' ? 'capsula' : 'rotina')
 
 <style scoped>
 .hora-agora { font-size: 13px; font-weight: 600; }
+.lembrete-backup { align-items: center; }
+.lembrete-backup button { min-height: 36px; padding: 0 4px; font-weight: 800; color: var(--primaria); flex-shrink: 0; }
 .resumo { display: flex; align-items: center; gap: 12px; padding: 14px 16px 14px 8px; border-radius: 20px; }
 .resumo-texto { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
 .resumo-texto strong { display: block; font-size: 34px; line-height: 40px; font-weight: 800; letter-spacing: -0.5px; }

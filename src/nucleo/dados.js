@@ -12,6 +12,7 @@ const vazio = () => ({
   adiados: {}, avisados: {},
   categorias: [...CATEGORIAS_PADRAO],
   prefs: { modo: 'sistema', nomeNaNotificacao: false, vista: 'periodo' },
+  backup: { ultimo: null },
 })
 
 function carregar() {
@@ -101,3 +102,21 @@ export function comecar(comDemo) {
 export function apagarTudo() {
   Object.assign(estado, vazio(), { prefs: estado.prefs })
 }
+
+// O que vai para o arquivo de backup: tudo, menos o que é só deste momento (adiados e avisos do dia).
+export function paraBackup() {
+  const { adiados, avisados, backup, ...resto } = JSON.parse(JSON.stringify(estado))
+  return resto
+}
+export function backupFeito(quando = new Date()) {
+  estado.backup = { ultimo: quando.toISOString() }
+}
+// Troca o que está no aparelho pelo conteúdo do backup.
+export function restaurar(dados, feitoEm) {
+  Object.assign(estado, vazio(), dados, {
+    iniciado: true, adiados: {}, avisados: {},
+    prefs: { ...vazio().prefs, ...(dados.prefs || {}) },
+    backup: { ultimo: feitoEm || null },
+  })
+}
+export const temDados = () => estado.remedios.length + estado.rotinas.length > 0
