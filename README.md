@@ -25,6 +25,7 @@ npm run build     # compila para dist/
 | `src/nucleo/avisos.js` | Relógio, notificação discreta e abertura do alarme |
 | `src/nucleo/acesso.js` | Acesso no aparelho, na lógica do Dagda Capital: apelido, senha ou PIN (só o hash fica guardado), chave mestra e chave de recuperação de 24 caracteres, espera depois de erros, bloqueio automático |
 | `src/nucleo/backup.js` | Backup em arquivo, compactado e trancado pela chave mestra (AES-GCM 256). Abre com a senha de acesso da época ou com a chave de recuperação |
+| `src/nucleo/nuvem/` | Google Drive: conexão (token só na memória), envio conferido, até 4 cópias e exclusão protegida |
 | `src/nucleo/demo.js` | Dados fictícios |
 | `src/telas/` | Hoje, Remédios, Rotinas, Ajustes, Entrada |
 | `src/janelas/` | Janelas por cima: cadastros, detalhe, "+", alarme |
@@ -36,6 +37,7 @@ O Airmed é organizador e lembrete. Nunca calcula, sugere nem bloqueia dose. SOS
 ## Limites desta versão
 
 - O lembrete só toca com o app aberto no navegador. Alarme em tela cheia com o celular bloqueado: só na capa Android.
-- Backup só em arquivo (manual). Google Drive, pasta do PC e biometria ainda não entraram. Sem Google Agenda, só o tema Ervas.
+- Backup em arquivo e no Google Drive (área oculta do app, até 4 cópias conferidas). Pasta do PC e biometria ainda não entraram. Sem Google Agenda, só o tema Ervas.
+- A conexão Google é, por enquanto, a mesma do Dagda Capital (`src/config.js`). O Airmed só mexe nos arquivos `airmed-backup-*.airmed`.
 - Como no Dagda Capital, a senha protege a entrada do app e tranca os backups; os dados no navegador do aparelho não são criptografados.
 - Entrada, janela do "+" e Ajustes são provisórios (telas ainda não desenhadas).

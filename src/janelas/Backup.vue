@@ -3,7 +3,8 @@
 // Abre com a senha de acesso da época ou com a chave de recuperação. Não existe senha separada do backup.
 import { ref, computed, onMounted } from 'vue'
 import { estado, paraBackup, backupFeito, restaurar, temDados } from '../nucleo/dados.js'
-import { empacotar, abrirBackup, nomeDoArquivo } from '../nucleo/backup.js'
+import { empacotar, abrirBackup, nomeDoArquivo, nomeNaNuvem } from '../nucleo/backup.js'
+import { nuvem, nuvemDisponivel, prepararNuvem, enviarParaNuvem, listarNuvem, baixarDaNuvem } from '../nucleo/nuvem/index.js'
 import { acesso, adotarMestra, criarSenha, aplicarRecAdotado, gerarNovoCodigo, validarNovaSenha } from '../nucleo/acesso.js'
 import { ui, irPara, avisar } from '../nucleo/ui.js'
 import Janela from '../componentes/Janela.vue'
@@ -18,10 +19,13 @@ const mostra = ref(false)
 const arquivo = ref(null)
 const guardado = ref(false)
 const podeEnviar = computed(() => !!arquivo.value && !!navigator.canShare?.({ files: [arquivo.value] }))
+let textoPronto = ''
+const noDrive = ref(false)
 onMounted(async () => {
+  if (nuvemDisponivel() && nuvem.conectado) prepararNuvem()
   if (props.modo !== 'fazer') return
   ocupado.value = true
-  try { arquivo.value = new File([await empacotar(paraBackup(acesso.apelido))], nomeDoArquivo(), { type: 'text/plain' }) }
+  try { textoPronto = await empacotar(paraBackup(acesso.apelido)); arquivo.value = new File([textoPronto], nomeDoArquivo(), { type: 'text/plain' }) }
   catch (e) { erro.value = e.message || 'Não deu para criar o backup neste navegador.' }
   ocupado.value = false
 })
@@ -38,7 +42,24 @@ async function enviar() {
   catch (e) { if (e?.name !== 'AbortError') erro.value = 'Não deu para enviar. Use "Baixar no aparelho".' }
 }
 
+async function paraODrive() {
+  erro.value = ''
+  try { await enviarParaNuvem(nomeNaNuvem(), textoPronto); noDrive.value = true; concluir('google') }
+  catch (e) { if (e.codigo !== 'cancelado') erro.value = e.message }
+}
+
 // --- restaurar ---
+const copias = ref(null) // lista do Google Drive
+async function buscarNoDrive() {
+  erro.value = ''
+  try { copias.value = await listarNuvem() } catch (e) { if (e.codigo !== 'cancelado') erro.value = e.message }
+}
+async function escolherCopia(item) {
+  erro.value = ''
+  try { textoArquivo.value = await baixarDaNuvem(item); nomeArquivo.value = `Cópia do Drive de ${quandoMs(item.data)}`; copias.value = null }
+  catch (e) { erro.value = e.message }
+}
+const quandoMs = (ms) => { const d = new Date(ms); return `${d.toLocaleDateString('pt-BR')} às ${d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}` }
 const textoArquivo = ref('')
 const nomeArquivo = ref('')
 const segredo = ref('')
@@ -112,8 +133,10 @@ function terminar() { ui.janelas = []; irPara('hoje'); avisar('Backup restaurado
           <span class="apoio num">{{ arquivo.name }}</span>
         </div>
         <p class="texto">{{ guardado ? 'Confira se o arquivo chegou onde você queria. Pode guardar em mais de um lugar.' : 'Agora escolha onde guardar o arquivo. Sem guardar, o backup não existe.' }}</p>
-        <button v-if="podeEnviar" type="button" class="botao cheio grande" @click="enviar">Guardar no Drive, arquivos ou outro app</button>
-        <button type="button" class="botao grande" :class="podeEnviar ? 'contorno' : 'cheio'" @click="baixar">Baixar no aparelho</button>
+        <button v-if="nuvemDisponivel()" type="button" class="botao grande" :class="nuvem.conectado || estado.backup.ultimoDestino === 'google' ? 'cheio' : 'contorno'" :disabled="nuvem.ocupado || noDrive" @pointerdown="prepararNuvem()" @click="paraODrive">{{ nuvem.ocupado ? 'Enviando e conferindo…' : (noDrive ? 'Enviado para o Google Drive' : (nuvem.conectado ? 'Enviar para o Google Drive' : 'Conectar e enviar para o Google Drive')) }}</button>
+        <button v-if="podeEnviar" type="button" class="botao contorno grande" @click="enviar">Guardar em arquivos ou outro app</button>
+        <button type="button" class="botao contorno grande" @click="baixar">Baixar no aparelho</button>
+        <div v-if="noDrive && nuvem.avisoRetencao" class="faixa info solta"><Icone nome="info" :tam="16" :traco="1.6" /><span>A cópia nova está guardada. As antigas ficaram todas: {{ nuvem.avisoRetencao }}</span></div>
         <div class="faixa info solta"><Icone nome="info" :tam="16" :traco="1.6" /><span>O arquivo abre com a sua senha de acesso de hoje ou com a chave de recuperação. Guarde fora deste aparelho.</span></div>
       </template>
     </template>
@@ -125,8 +148,13 @@ function terminar() { ui.janelas = []; irPara('hoje'); avisar('Backup restaurado
         <span class="titulo">Arquivo do backup</span>
         <label class="botao tracejado arquivo">
           <Icone nome="mais" :tam="18" :traco="2" />{{ nomeArquivo || 'Escolher arquivo' }}
-          <input type="file" accept=".txt,.json,text/plain,application/json" class="so-leitor" @change="escolher">
+          <input type="file" accept=".txt,.json,.airmed,text/plain,application/json" class="so-leitor" @change="escolher">
         </label>
+        <button v-if="nuvemDisponivel()" type="button" class="botao contorno" :disabled="nuvem.ocupado" @pointerdown="prepararNuvem()" @click="buscarNoDrive">{{ nuvem.ocupado ? 'Buscando…' : 'Buscar no Google Drive' }}</button>
+        <div v-if="copias" class="cartao lista-linhas">
+          <p v-if="!copias.length" class="apoio" style="padding:14px">Não há cópias do Airmed neste Google Drive.</p>
+          <button v-for="c in copias" :key="c.id" type="button" class="linha-escolha num" @click="escolherCopia(c)">{{ quandoMs(c.data) }}<Icone nome="direita" :tam="18" style="margin-left:auto" /></button>
+        </div>
       </div>
       <div class="campo">
         <label for="bk-abre">Senha do backup ou chave de recuperação</label>

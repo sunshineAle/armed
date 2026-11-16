@@ -15,12 +15,13 @@ import Detalhe from './janelas/Detalhe.vue'
 import Alarme from './janelas/Alarme.vue'
 import Backup from './janelas/Backup.vue'
 import Seguranca from './janelas/Seguranca.vue'
+import CopiasDrive from './janelas/CopiasDrive.vue'
 import Acesso from './telas/Acesso.vue'
 import ChaveNova from './telas/ChaveNova.vue'
 import { acesso } from './nucleo/acesso.js'
 
 const TELAS = { hoje: Hoje, remedios: Remedios, rotinas: Rotinas, ajustes: Ajustes }
-const JANELAS = { mais: Mais, remedio: CadastroRemedio, rotina: CadastroRotina, detalhe: Detalhe, backup: Backup, seguranca: Seguranca }
+const JANELAS = { mais: Mais, remedio: CadastroRemedio, rotina: CadastroRotina, detalhe: Detalhe, backup: Backup, seguranca: Seguranca, copias: CopiasDrive }
 const itens = [
   { id: 'hoje', nome: 'Hoje', icone: 'hoje' },
   { id: 'remedios', nome: 'Remédios', icone: 'capsula' },

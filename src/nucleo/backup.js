@@ -88,6 +88,27 @@ function conferir(bytes, resto) {
   return { dados, ...resto }
 }
 
+// Confere uma cópia com a chave da sessão já desbloqueada (sem pedir senha): precisa abrir e estar no formato.
+export async function validarComSessao(texto) {
+  const env = lerEnvelope(texto)
+  const mestra = chaveMestraDaSessao()
+  if (env.antigo || !mestra) throw new ErroBackup('Esta cópia não pôde ser aberta com o acesso atual. Nenhuma cópia foi descartada.')
+  try {
+    const k = await crypto.subtle.importKey('raw', mestra, 'AES-GCM', false, ['decrypt'])
+    let bytes = new Uint8Array(await crypto.subtle.decrypt({ name: 'AES-GCM', iv: deB64(env.criptografia.iv) }, k, deB64(env.dados)))
+    if (env.compressao === 'gzip') bytes = await fluxo(bytes, DecompressionStream)
+    const dados = JSON.parse(new TextDecoder().decode(bytes))
+    if (!validar(dados)) throw new Error('formato')
+    return dados
+  } catch { throw new ErroBackup('Esta cópia não pôde ser aberta com o acesso atual. Nenhuma cópia foi descartada.') }
+}
+
+// Nome da cópia no Google Drive (com segundos, para duas cópias no mesmo minuto não se confundirem).
+export const nomeNaNuvem = (agora = new Date()) => {
+  const p = (n) => String(n).padStart(2, '0')
+  return `airmed-backup-${agora.getFullYear()}-${p(agora.getMonth() + 1)}-${p(agora.getDate())}-${p(agora.getHours())}${p(agora.getMinutes())}${p(agora.getSeconds())}.airmed`
+}
+
 export const nomeDoArquivo = (agora = new Date()) => {
   const p = (n) => String(n).padStart(2, '0')
   return `airmed-backup-${agora.getFullYear()}-${p(agora.getMonth() + 1)}-${p(agora.getDate())}-${p(agora.getHours())}${p(agora.getMinutes())}.txt`

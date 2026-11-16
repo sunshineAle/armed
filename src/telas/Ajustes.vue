@@ -1,9 +1,10 @@
 <script setup>
 // Ajustes (provisório: a tela definitiva ainda vai ser desenhada).
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { computed } from 'vue'
 import { estado, comecar, apagarTudo, hoje, agoraMin, relogio } from '../nucleo/dados.js'
 import { diasSemBackup, INTERVALOS } from '../nucleo/backup.js'
+import { nuvem, nuvemDisponivel, prepararNuvem, conectarNuvem, desconectarNuvem, esquecerNuvem } from '../nucleo/nuvem/index.js'
 import { acesso, apagarAcesso, bloquear, minutosAutoBloqueio, definirAutoBloqueio } from '../nucleo/acesso.js'
 import { diaComSituacao } from '../nucleo/motor.js'
 import { permissao, pedirPermissao, notificar } from '../nucleo/avisos.js'
@@ -15,7 +16,13 @@ const perm = ref(permissao())
 const confirma = ref('')
 const auto = ref(minutosAutoBloqueio())
 const mudarAuto = (m) => { auto.value = m; definirAutoBloqueio(m) }
-const DESTINO = { arquivo: 'baixado no aparelho', compartilhado: 'enviado para outro app' }
+const DESTINO = { arquivo: 'baixado no aparelho', compartilhado: 'enviado para outro app', google: 'no Google Drive' }
+const erroNuvem = ref('')
+onMounted(() => { if (!estado.demo && nuvemDisponivel() && nuvem.conectado) prepararNuvem() })
+async function conectar() {
+  erroNuvem.value = ''
+  try { await conectarNuvem(); avisar('Google Drive conectado') } catch (e) { if (e.codigo !== 'cancelado') erroNuvem.value = e.message }
+}
 const ultimoBackup = computed(() => {
   const d = diasSemBackup(estado.backup?.ultimo, relogio.agora)
   if (d === null) return 'Nunca'
@@ -32,12 +39,12 @@ function testarAlarme() {
   if (!item) { avisar('Cadastre um remédio com horário para hoje e teste de novo'); return }
   ui.alarme = { data: hoje.value, hora: item.hora }
 }
-function demo() { apagarAcesso(); comecar(true); confirma.value = ''; irPara('hoje'); avisar('Dados fictícios carregados') }
-function zerar() { apagarAcesso(); apagarTudo(); confirma.value = '' }
+function demo() { apagarAcesso(); esquecerNuvem(); comecar(true); confirma.value = ''; irPara('hoje'); avisar('Dados fictícios carregados') }
+function zerar() { apagarAcesso(); esquecerNuvem(); apagarTudo(); confirma.value = '' }
 </script>
 
 <template>
-  <header class="cabeca"><div><small>Versão de teste 0.3</small><h1>Ajustes</h1></div></header>
+  <header class="cabeca"><div><small>Versão de teste 0.4</small><h1>Ajustes</h1></div></header>
 
   <section class="grupo">
     <span class="rotulo">Aparência · tema Ervas</span>
@@ -97,7 +104,20 @@ function zerar() { apagarAcesso(); apagarTudo(); confirma.value = '' }
       <button type="button" class="botao cheio cresce" @click="abrir('backup', { modo: 'fazer' })">Fazer backup</button>
       <button type="button" class="botao contorno cresce" @click="abrir('backup', { modo: 'restaurar' })">Restaurar</button>
     </div>
-    <p class="nota">O backup é um arquivo trancado. Ele abre com a sua senha de acesso ou com a chave de recuperação. Google Drive chega na próxima etapa.</p>
+    <p class="nota">O backup é um arquivo trancado. Ele abre com a sua senha de acesso ou com a chave de recuperação.</p>
+
+    <template v-if="nuvemDisponivel()">
+      <div class="cartao lista-linhas">
+        <div class="linha-escolha">Google Drive<b :style="{ color: nuvem.conectado && !nuvem.precisaReconectar ? 'var(--primaria)' : 'var(--apoio)' }">{{ nuvem.conectado ? (nuvem.precisaReconectar ? 'Precisa reconectar' : 'Conectado') : 'Não conectado' }}</b></div>
+        <button v-if="nuvem.conectado" type="button" class="linha-escolha" @click="abrir('copias')">Ver as cópias guardadas<Icone nome="direita" :tam="18" style="margin-left:auto" /></button>
+      </div>
+      <div class="linha-botoes">
+        <button v-if="!nuvem.conectado || nuvem.precisaReconectar" type="button" class="botao contorno cresce" :disabled="nuvem.ocupado" @pointerdown="prepararNuvem()" @click="conectar">{{ nuvem.ocupado ? 'Conectando…' : (nuvem.conectado ? 'Reconectar' : 'Conectar o Google Drive') }}</button>
+        <button v-if="nuvem.conectado" type="button" class="botao suave cresce" @click="desconectarNuvem()">Desconectar</button>
+      </div>
+      <p v-if="erroNuvem" class="erro" role="alert">{{ erroNuvem }}</p>
+      <div class="faixa info solta"><Icone nome="info" :tam="16" :traco="1.6" /><span>As cópias ficam numa área oculta do seu Drive, que só este app enxerga. Ficam até 4, e cada envio é baixado de volta e conferido. Por enquanto a conexão é a mesma do Dagda Capital, então a tela do Google mostra esse nome.</span></div>
+    </template>
   </section>
 
   <section class="grupo">
