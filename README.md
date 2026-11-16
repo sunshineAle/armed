@@ -5,7 +5,7 @@ Web app de teste do Airmed: remédios e rotinas com lembrete, num lugar só. Um 
 - **Base:** Vue 3 + Vite.
 - **Publicação:** a cada envio para a `main`, o GitHub testa, compila e publica no GitHub Pages (`.github/workflows/publicar.yml`). Precisa estar ligado em Settings → Pages → Source: **GitHub Actions**.
 - **Dados:** só no navegador do aparelho (`localStorage`, chave `airmed-teste:v1`). Nada vai para servidor.
-- **Nomes de remédio no código e nos testes são inventados.** Nunca colocar nome, dose ou horário real aqui.
+- **Não há dados fictícios no app.** Nos testes, os nomes de remédio são inventados. Nunca colocar nome, dose ou horário real aqui.
 
 ## Rodar
 
@@ -26,7 +26,7 @@ npm run build     # compila para dist/
 | `src/nucleo/acesso.js` | Acesso no aparelho, na lógica do Dagda Capital: apelido, senha ou PIN (só o hash fica guardado), chave mestra e chave de recuperação de 24 caracteres, espera depois de erros, bloqueio automático |
 | `src/nucleo/backup.js` | Backup em arquivo, compactado e trancado pela chave mestra (AES-GCM 256). Abre com a senha de acesso da época ou com a chave de recuperação |
 | `src/nucleo/nuvem/` | Google Drive: conexão (token só na memória), envio conferido, até 4 cópias e exclusão protegida |
-| `src/nucleo/demo.js` | Dados fictícios |
+| `src/nucleo/instalacao.js`, `public/sw.js`, `public/manifest.webmanifest` | Instalação como app e funcionamento sem internet |
 | `src/telas/` | Hoje, Remédios, Rotinas, Ajustes, Entrada |
 | `src/janelas/` | Janelas por cima: cadastros, detalhe, "+", alarme |
 

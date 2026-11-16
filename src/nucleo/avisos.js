@@ -36,7 +36,7 @@ export function verificar() {
     if (!voltou && agoraMin.value - minutos(hora) > RECENTE) continue
     const comAlarme = itens.filter((o) => o.tipo === 'rem' || o.nivel === 'cobrar')
     notificar(hora, itens)
-    if (!estado.demo && !acesso.desbloqueado) continue
+    if (!acesso.desbloqueado) continue
     if (comAlarme.length) { if (!ui.alarme) ui.alarme = { data: dia, hora } }
     else avisar(`${horaCurta(hora)} · ${itens.map((o) => o.titulo).join(', ')}`)
   }

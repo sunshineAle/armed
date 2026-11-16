@@ -45,10 +45,9 @@ watchEffect(() => {
 
 <template>
   <Entrada v-if="!estado.iniciado" />
-  <Acesso v-else-if="!estado.demo && (!acesso.configurada || !acesso.desbloqueado)" />
+  <Acesso v-else-if="!acesso.configurada || !acesso.desbloqueado" />
   <ChaveNova v-else-if="ui.codigoNovo" />
   <div v-else class="casca">
-    <div class="faixa-teste">Versão de teste{{ estado.demo ? ' · dados fictícios' : '' }}</div>
     <main class="conteudo">
       <component :is="TELAS[ui.tela]" />
     </main>

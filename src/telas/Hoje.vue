@@ -13,12 +13,12 @@ import Anel from '../componentes/Anel.vue'
 const feitosAbertos = ref(false)
 // Lembrete de backup: depois de uma semana sem (ou nunca), para quem tem dados de verdade.
 const lembreteBackup = computed(() => {
-  if (estado.demo || !(estado.remedios.length + estado.rotinas.length)) return ''
+  if (!(estado.remedios.length + estado.rotinas.length)) return ''
   if (!backupDevido(estado.backup, relogio.agora)) return ''
   const d = diasSemBackup(estado.backup?.ultimo, relogio.agora)
   return d === null ? 'Hora do primeiro backup. Se este aparelho se perder, os dados vão junto.' : `Faz ${d} dias que você não faz backup.`
 })
-const chavePendente = computed(() => !estado.demo && acesso.recPendente)
+const chavePendente = computed(() => acesso.recPendente)
 const itens = computed(() => diaComSituacao(estado, hoje.value, hoje.value, agoraMin.value))
 const resolvido = (s) => s === 'feito' || s === 'pulado'
 const total = computed(() => itens.value.length)

@@ -2,7 +2,6 @@
 import { reactive, watch, computed } from 'vue'
 import { dataISO, minDe, horaDe } from './tempo.js'
 import { CATEGORIAS_PADRAO } from './formas.js'
-import { montarDemo } from './demo.js'
 
 const CHAVE = 'airmed-teste:v1'
 
@@ -18,7 +17,8 @@ const vazio = () => ({
 function carregar() {
   try {
     const salvo = JSON.parse(localStorage.getItem(CHAVE))
-    if (salvo?.versao === 1) return { ...vazio(), ...salvo, prefs: { ...vazio().prefs, ...salvo.prefs }, backup: { ...vazio().backup, ...salvo.backup } }
+    // Quem estava com dados fictícios (versões de teste antigas) começa limpo.
+    if (salvo?.versao === 1 && !salvo.demo) return { ...vazio(), ...salvo, prefs: { ...vazio().prefs, ...salvo.prefs }, backup: { ...vazio().backup, ...salvo.backup } }
   } catch { /* começa do zero */ }
   return vazio()
 }
@@ -94,10 +94,8 @@ export function adiar(data, hora, min = 10) {
   estado.adiados[`${data}:${hora}`] = Date.now() + min * 60000
 }
 
-export function comecar(comDemo) {
-  Object.assign(estado, vazio(), comDemo ? montarDemo(new Date()) : {}, {
-    iniciado: true, demo: !!comDemo, prefs: estado.prefs,
-  })
+export function comecar() {
+  Object.assign(estado, vazio(), { iniciado: true, prefs: estado.prefs })
   estado.backup.desde = new Date().toISOString()
 }
 export function apagarTudo() {
