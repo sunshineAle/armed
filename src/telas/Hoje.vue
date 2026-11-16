@@ -6,10 +6,16 @@ import { minutos, deMin, dataLonga, diaSemana, horaDe, horaReal, duracao } from 
 import { forma } from '../nucleo/formas.js'
 import { abrir, avisar } from '../nucleo/ui.js'
 import { diasSemBackup, backupDevido } from '../nucleo/backup.js'
+import { permissao, pedirPermissao, notificar } from '../nucleo/avisos.js'
 import Icone from '../componentes/Icone.vue'
 import Anel from '../componentes/Anel.vue'
 
 const feitosAbertos = ref(false)
+const perm = ref(permissao())
+async function ligarNotificacoes() {
+  perm.value = await pedirPermissao()
+  if (perm.value === 'granted') notificar(horaDe(new Date()), [{ tipo: 'rot', titulo: 'Notificações ligadas' }])
+}
 // Lembrete de backup: depois de uma semana sem (ou nunca), para quem tem dados de verdade.
 const lembreteBackup = computed(() => {
   if (!(estado.remedios.length + estado.rotinas.length)) return ''
@@ -118,6 +124,11 @@ const icone = (l) => (l.tipo === 'rem' ? 'capsula' : 'rotina')
     <span class="num apoio hora-agora">{{ horaReal(horaDe(relogio.agora)) }}</span>
   </header>
 
+  <div v-if="perm === 'default' && itens.some((i) => i.hora)" class="faixa info solta lembrete-backup">
+    <Icone nome="lembrar" :tam="16" :traco="1.6" />
+    <span style="flex:1">Ligue as notificações para o Airmed avisar na hora.</span>
+    <button type="button" @click="ligarNotificacoes">Ligar</button>
+  </div>
   <div v-if="lembreteBackup" class="faixa info solta lembrete-backup">
     <Icone nome="info" :tam="16" :traco="1.6" />
     <span style="flex:1">{{ lembreteBackup }}</span>

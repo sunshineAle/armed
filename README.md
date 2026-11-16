@@ -23,7 +23,8 @@ npm run build     # compila para dist/
 |---|---|
 | `src/nucleo/motor.js` | Motor de lembrete compartilhado (repetição, situação, semana, estoque, SOS) |
 | `src/nucleo/dados.js` | Guarda os dados no aparelho; marcar, desfazer, adiar |
-| `src/nucleo/avisos.js` | Relógio, notificação discreta e abertura do alarme |
+| `src/nucleo/avisos.js` | Relógio, notificação discreta e abertura do alarme (vale enquanto a janela estiver aberta; reforço perto do fim) |
+| `src/nucleo/som.js` | Som e vibração do alarme, feitos pelo navegador |
 | `src/nucleo/acesso.js` | Acesso no aparelho, na lógica do Dagda Capital: apelido, senha ou PIN (só o hash fica guardado), chave mestra e chave de recuperação de 24 caracteres, espera depois de erros, bloqueio automático |
 | `src/nucleo/backup.js` | Backup em arquivo, compactado e trancado pela chave mestra (AES-GCM 256). Abre com a senha de acesso da época ou com a chave de recuperação |
 | `src/nucleo/nuvem/` | Google Drive: conexão (token só na memória), envio conferido, até 4 cópias e exclusão protegida |

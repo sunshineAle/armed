@@ -1,7 +1,8 @@
 <script setup>
 // Alarme dentro do app, no tema que a pessoa escolheu.
 // O alarme em tela cheia com o celular bloqueado só existe na capa Android.
-import { computed } from 'vue'
+import { computed, onMounted, onBeforeUnmount, ref } from 'vue'
+import { tocarAlarme, pararAlarme, somPronto, destravarSom } from '../nucleo/som.js'
 import { estado, hoje, agoraMin, marcar, desfazer, adiar } from '../nucleo/dados.js'
 import { diaComSituacao, fimDaJanela } from '../nucleo/motor.js'
 import { deMin, horaCurta, horaReal } from '../nucleo/tempo.js'
@@ -20,6 +21,11 @@ const janela = computed(() => {
   const f = Math.min(...fins)
   return f >= 1440 ? 'o fim do dia' : deMin(f)
 })
+// Toca e vibra até a primeira resposta. Sem toque anterior na tela, o navegador não deixa sair som: aí aparece o aviso.
+const mudo = ref(false)
+onMounted(() => { if (estado.prefs.som) { tocarAlarme(); mudo.value = !somPronto() } })
+onBeforeUnmount(pararAlarme)
+function calar() { if (mudo.value) { destravarSom(); mudo.value = false } pararAlarme() }
 const fechar = () => { ui.alarme = null }
 function todos() { pendentes.value.forEach((i) => marcar(i, 'feito')) }
 function adiar10() { adiar(props.data, props.hora, 10); fechar(); avisar('Adiado: lembro de novo em 10 min') }
@@ -29,7 +35,7 @@ const verbo = (i) => (i.tipo === 'rot' ? 'Fiz' : i.verbo)
 </script>
 
 <template>
-  <div class="alarme" role="alertdialog" aria-modal="true" :aria-label="`Lembrete das ${horaCurta(hora)}`">
+  <div class="alarme" role="alertdialog" aria-modal="true" :aria-label="`Lembrete das ${horaCurta(hora)}`" @pointerdown="calar">
     <div class="alarme-caixa">
       <div class="alarme-topo">
         <span class="marca"><Icone nome="marca" :tam="18" :traco="1.6" />Airmed</span>

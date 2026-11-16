@@ -51,7 +51,7 @@ function zerar() { apagarAcesso(); esquecerNuvem(); apagarTudo(); confirma.value
 </script>
 
 <template>
-  <header class="cabeca"><div><small>Versão de teste 0.6</small><h1>Ajustes</h1></div></header>
+  <header class="cabeca"><div><small>Versão de teste 0.7</small><h1>Ajustes</h1></div></header>
 
   <section v-if="!instalacao.instalado" class="grupo">
     <span class="rotulo">Instalar o app</span>
@@ -72,6 +72,10 @@ function zerar() { apagarAcesso(); esquecerNuvem(); apagarTudo(); confirma.value
     <div class="cartao lista-linhas">
       <div class="linha-escolha">Notificações<b :style="{ color: perm === 'granted' ? 'var(--primaria)' : 'var(--apoio)' }">{{ TEXTO[perm] }}</b></div>
       <label class="linha-escolha" style="cursor:pointer">
+        <span style="flex:1">Som e vibração do alarme</span>
+        <input v-model="estado.prefs.som" type="checkbox" class="chave">
+      </label>
+      <label class="linha-escolha" style="cursor:pointer">
         <span style="flex:1">Mostrar o nome do remédio na notificação</span>
         <input v-model="estado.prefs.nomeNaNotificacao" type="checkbox" class="chave">
       </label>
@@ -80,7 +84,7 @@ function zerar() { apagarAcesso(); esquecerNuvem(); apagarTudo(); confirma.value
       <button v-if="perm === 'default'" type="button" class="botao cheio cresce" @click="ligar">Ligar notificações</button>
       <button type="button" class="botao contorno cresce" @click="testarAlarme">Ver como é o alarme</button>
     </div>
-    <div class="faixa info solta"><Icone nome="info" :tam="16" :traco="1.6" /><span>Nesta versão de teste, o lembrete só toca com o Airmed aberto. O alarme de verdade, com o celular bloqueado, vem com o app Android.</span></div>
+    <div class="faixa info solta"><Icone nome="info" :tam="16" :traco="1.6" /><span>O alarme toca e vibra com o Airmed aberto na tela. Com o app fechado ou o celular bloqueado, o navegador não deixa tocar: sai só a notificação, e só se o app ainda estiver aberto em segundo plano. O alarme de verdade, com o celular bloqueado, vem com o app Android.</span></div>
   </section>
 
   <section class="grupo">

@@ -10,7 +10,7 @@ const vazio = () => ({
   remedios: [], rotinas: [], registros: [],
   adiados: {}, avisados: {},
   categorias: [...CATEGORIAS_PADRAO],
-  prefs: { modo: 'sistema', nomeNaNotificacao: false, vista: 'periodo' },
+  prefs: { modo: 'sistema', nomeNaNotificacao: false, vista: 'periodo', som: true },
   backup: { ultimo: null, ultimoDestino: null, intervalo: 'semanal', desde: null },
 })
 
