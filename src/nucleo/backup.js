@@ -54,13 +54,13 @@ export const validar = (d) => d?.versao === 1 && [d.remedios, d.rotinas, d.regis
 // Devolve { dados, criadoEm, mestra, rec, pelaChave } (mestra e rec servem para o aparelho novo adotar o mesmo acesso).
 export async function abrirBackup(texto, segredo) {
   const env = lerEnvelope(texto)
-  if (!segredo) throw new ErroBackup('Informe a senha do backup ou a chave de recuperação.')
+  if (!segredo) throw new ErroBackup('Informe a senha do backup ou o código de recuperação.')
   if (env.antigo) return abrirAntigo(env, segredo)
   const c = env.criptografia
   let pelaChave = false
   let mestra = await desembrulharMestra(c.chaves?.senha, segredo)
   if (!mestra && codigoValido(segredo)) { mestra = await desembrulharMestra(c.chaves?.recuperacao, normalizarCodigo(segredo)); pelaChave = !!mestra }
-  if (!mestra) throw new ErroBackup('Senha ou chave de recuperação incorreta para este backup.')
+  if (!mestra) throw new ErroBackup('Senha ou código de recuperação incorreto para este backup.')
   let bytes
   try {
     const k = await crypto.subtle.importKey('raw', mestra, 'AES-GCM', false, ['decrypt'])

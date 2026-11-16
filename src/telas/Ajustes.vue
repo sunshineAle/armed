@@ -5,12 +5,12 @@ import { computed } from 'vue'
 import { estado, apagarTudo, hoje, agoraMin, relogio } from '../nucleo/dados.js'
 import { diasSemBackup, INTERVALOS } from '../nucleo/backup.js'
 import { nuvem, nuvemDisponivel, prepararNuvem, conectarNuvem, desconectarNuvem, esquecerNuvem } from '../nucleo/nuvem/index.js'
-import { acesso, apagarAcesso, bloquear, minutosAutoBloqueio, definirAutoBloqueio } from '../nucleo/acesso.js'
+import { acesso, apagarAcesso, bloquear, minutosAutoBloqueio, definirAutoBloqueio, biometriaSuportada, ativarBiometria, desativarBiometria } from '../nucleo/acesso.js'
 import { diaComSituacao } from '../nucleo/motor.js'
 import { permissao, pedirPermissao, notificar } from '../nucleo/avisos.js'
 import { ui, avisar, irPara, abrir } from '../nucleo/ui.js'
 import { horaDe } from '../nucleo/tempo.js'
-import { instalacao, instalar } from '../nucleo/instalacao.js'
+import { instalacao, instalarApp, ehApple } from '../nucleo/instalacao.js'
 import Icone from '../componentes/Icone.vue'
 
 const perm = ref(permissao())
@@ -19,6 +19,13 @@ const auto = ref(minutosAutoBloqueio())
 const mudarAuto = (m) => { auto.value = m; definirAutoBloqueio(m) }
 const DESTINO = { arquivo: 'baixado no aparelho', compartilhado: 'enviado para outro app', google: 'no Google Drive' }
 const erroNuvem = ref('')
+const bioOk = ref(false)
+const erroBio = ref('')
+onMounted(async () => { bioOk.value = await biometriaSuportada() })
+async function alternarBio() {
+  erroBio.value = ''
+  try { acesso.biometria ? await desativarBiometria() : await ativarBiometria() } catch (e) { erroBio.value = e.message }
+}
 onMounted(() => { if (nuvemDisponivel() && nuvem.conectado) prepararNuvem() })
 async function conectar() {
   erroNuvem.value = ''
@@ -40,16 +47,15 @@ function testarAlarme() {
   if (!item) { avisar('Cadastre um remédio com horário para hoje e teste de novo'); return }
   ui.alarme = { data: hoje.value, hora: item.hora }
 }
-function zerar() { apagarAcesso(); esquecerNuvem(); apagarTudo(); confirma.value = '' }
+function zerar() { apagarAcesso(); esquecerNuvem(); apagarTudo(); confirma.value = ''; ui.janelas = []; ui.liberado = false }
 </script>
 
 <template>
-  <header class="cabeca"><div><small>Versão de teste 0.5</small><h1>Ajustes</h1></div></header>
+  <header class="cabeca"><div><small>Versão de teste 0.6</small><h1>Ajustes</h1></div></header>
 
   <section v-if="!instalacao.instalado" class="grupo">
     <span class="rotulo">Instalar o app</span>
-    <button v-if="instalacao.podePedir" type="button" class="botao cheio" @click="instalar()">Instalar o Airmed neste aparelho</button>
-    <div v-else class="faixa info solta"><Icone nome="info" :tam="16" :traco="1.6" /><span>{{ instalacao.apple ? 'No iPhone ou iPad: toque em Compartilhar e depois em "Adicionar à Tela de Início".' : 'No menu do navegador (os três pontinhos), toque em "Instalar app" ou "Adicionar à tela inicial".' }}</span></div>
+    <button type="button" class="botao cheio" @click="instalarApp()"><Icone nome="baixar" :tam="18" :traco="2" />{{ ehApple() ? 'Como instalar' : 'Instalar aplicativo' }}</button>
     <p class="nota">Instalado, o Airmed abre em tela cheia, com ícone próprio, e funciona sem internet.</p>
   </section>
 
@@ -82,8 +88,13 @@ function zerar() { apagarAcesso(); esquecerNuvem(); apagarTudo(); confirma.value
     <div class="cartao lista-linhas">
       <button type="button" class="linha-escolha" @click="abrir('seguranca', { modo: 'apelido' })">Apelido<b>{{ acesso.apelido || 'Sem apelido' }}</b><Icone nome="direita" :tam="18" /></button>
       <button type="button" class="linha-escolha" @click="abrir('seguranca', { modo: 'senha' })">Trocar {{ acesso.pin ? 'PIN ou senha' : 'senha ou PIN' }}<Icone nome="direita" :tam="18" style="margin-left:auto" /></button>
-      <button type="button" class="linha-escolha" @click="abrir('seguranca', { modo: 'chave' })">Chave de recuperação<b :style="{ color: acesso.recPendente ? 'var(--apoio)' : 'var(--primaria)' }">{{ acesso.recPendente ? 'Falta guardar' : 'Guardada' }}</b><Icone nome="direita" :tam="18" /></button>
+      <button type="button" class="linha-escolha" @click="abrir('seguranca', { modo: 'chave' })">Código de recuperação<b :style="{ color: acesso.recPendente ? 'var(--apoio)' : 'var(--primaria)' }">{{ acesso.recPendente ? 'Falta guardar' : 'Guardado' }}</b><Icone nome="direita" :tam="18" /></button>
+      <label v-if="bioOk" class="linha-escolha" style="cursor:pointer">
+        <span style="flex:1">Desbloquear com biometria</span>
+        <input type="checkbox" class="chave" :checked="acesso.biometria" @click.prevent="alternarBio">
+      </label>
     </div>
+    <p v-if="erroBio" class="erro" role="alert">{{ erroBio }}</p>
     <span class="nota" style="font-weight:700">Bloquear sozinho depois de ficar fora do app por</span>
     <div class="segmento" role="radiogroup" aria-label="Bloqueio automático">
       <button v-for="o in [[1, '1 min'], [5, '5 min'], [15, '15 min'], [0, 'Nunca']]" :key="o[0]" type="button" role="radio" :aria-checked="auto === o[0]" @click="mudarAuto(o[0])">{{ o[1] }}</button>
@@ -106,7 +117,7 @@ function zerar() { apagarAcesso(); esquecerNuvem(); apagarTudo(); confirma.value
       <button type="button" class="botao cheio cresce" @click="abrir('backup', { modo: 'fazer' })">Fazer backup</button>
       <button type="button" class="botao contorno cresce" @click="abrir('backup', { modo: 'restaurar' })">Restaurar</button>
     </div>
-    <p class="nota">O backup é um arquivo trancado. Ele abre com a sua senha de acesso ou com a chave de recuperação.</p>
+    <p class="nota">O backup é um arquivo trancado. Ele abre com a sua senha de acesso ou com o código de recuperação.</p>
 
     <template v-if="nuvemDisponivel()">
       <div class="cartao lista-linhas">
@@ -128,7 +139,7 @@ function zerar() { apagarAcesso(); esquecerNuvem(); apagarTudo(); confirma.value
       <button type="button" class="linha-escolha" style="color:var(--atrasado)" @click="confirma = 'zerar'">Apagar tudo e começar do zero<Icone nome="direita" :tam="18" style="margin-left:auto" /></button>
     </div>
     <div v-if="confirma" class="cartao confirma">
-      <p><strong>Apagar tudo?</strong> O que está cadastrado neste aparelho será apagado, junto com a senha e a chave de recuperação. Se quiser guardar, faça um backup antes.</p>
+      <p><strong>Apagar tudo?</strong> O que está cadastrado neste aparelho será apagado, junto com a senha, a biometria e o código de recuperação. Se quiser guardar, faça um backup antes.</p>
       <div class="linha-botoes">
         <button type="button" class="botao suave cresce" @click="confirma = ''">Manter</button>
         <button type="button" class="botao perigo cresce" @click="zerar()">Apagar</button>

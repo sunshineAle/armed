@@ -16,6 +16,7 @@ function gravar() {
 }
 export const nuvemDisponivel = () => google.configurado()
 export const prepararNuvem = () => google.preparar()
+export const temSessaoNuvem = () => google.temSessao()
 
 async function operar(fn, { marcarErro = true } = {}) {
   nuvem.ocupado = true

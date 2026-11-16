@@ -6,7 +6,6 @@ import { minutos, deMin, dataLonga, diaSemana, horaDe, horaReal, duracao } from 
 import { forma } from '../nucleo/formas.js'
 import { abrir, avisar } from '../nucleo/ui.js'
 import { diasSemBackup, backupDevido } from '../nucleo/backup.js'
-import { acesso } from '../nucleo/acesso.js'
 import Icone from '../componentes/Icone.vue'
 import Anel from '../componentes/Anel.vue'
 
@@ -18,7 +17,6 @@ const lembreteBackup = computed(() => {
   const d = diasSemBackup(estado.backup?.ultimo, relogio.agora)
   return d === null ? 'Hora do primeiro backup. Se este aparelho se perder, os dados vão junto.' : `Faz ${d} dias que você não faz backup.`
 })
-const chavePendente = computed(() => acesso.recPendente)
 const itens = computed(() => diaComSituacao(estado, hoje.value, hoje.value, agoraMin.value))
 const resolvido = (s) => s === 'feito' || s === 'pulado'
 const total = computed(() => itens.value.length)
@@ -120,15 +118,10 @@ const icone = (l) => (l.tipo === 'rem' ? 'capsula' : 'rotina')
     <span class="num apoio hora-agora">{{ horaReal(horaDe(relogio.agora)) }}</span>
   </header>
 
-  <div v-if="chavePendente" class="faixa info solta lembrete-backup">
-    <Icone nome="info" :tam="16" :traco="1.6" />
-    <span style="flex:1">Você ainda não guardou a chave de recuperação.</span>
-    <button type="button" @click="abrir('seguranca', { modo: 'chave' })">Ver a chave</button>
-  </div>
   <div v-if="lembreteBackup" class="faixa info solta lembrete-backup">
     <Icone nome="info" :tam="16" :traco="1.6" />
     <span style="flex:1">{{ lembreteBackup }}</span>
-    <button type="button" @click="abrir('backup', { modo: 'fazer' })">Fazer backup</button>
+    <button type="button" @click="abrir('backupRapido')">Fazer backup</button>
   </div>
 
   <div v-if="!total && !feitos.length" class="cartao vazio">

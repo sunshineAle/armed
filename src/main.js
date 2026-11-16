@@ -6,7 +6,10 @@ import { iniciarRelogio } from './nucleo/avisos.js'
 import './nucleo/instalacao.js'
 import { carregarAcesso, iniciarAutoBloqueio } from './nucleo/acesso.js'
 
+import { carregarBiometria } from './nucleo/acesso.js'
+
 carregarAcesso()
+carregarBiometria()
 iniciarAutoBloqueio()
 
 createApp(App).mount('#app')

@@ -86,6 +86,7 @@ export const google = {
   id: 'google', nome: 'Google Drive',
   preparar: () => carregarGis().catch(() => {}),
   configurado: () => !!GOOGLE_CLIENT_ID,
+  temSessao: () => tokenServe(),
   // Conectar reutiliza a sessão quando dá; só abre a tela do Google quando é preciso.
   async conectar() { if (!tokenServe()) await pedirToken(interacaoPendente || (vinculado() ? '' : 'consent')) },
   // Renovação silenciosa durante as chamadas: nunca força uma tela nova. Se falhar, um toque em conectar resolve.

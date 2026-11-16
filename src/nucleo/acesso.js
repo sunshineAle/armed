@@ -3,6 +3,7 @@
 // 24 caracteres. A chave mestra fica guardada embrulhada duas vezes: pela senha e pela chave de recuperação.
 // Trocar a senha não invalida os backups; a chave de recuperação substitui a senha esquecida.
 import { reactive } from 'vue'
+import { kvGet, kvSet } from './idb.js'
 
 const CHAVE = 'airmed:acesso'
 const FALHAS = 'airmed:acesso:falhas'
@@ -28,7 +29,7 @@ async function derivar(senha, sal, iteracoes) {
 let registro = null
 let senhaMemoria = null // só durante a sessão
 let mestraMemoria = null // Uint8Array(32), só durante a sessão
-export const acesso = reactive({ configurada: false, desbloqueado: false, apelido: '', pin: false, recPendente: false })
+export const acesso = reactive({ configurada: false, desbloqueado: false, apelido: '', pin: false, recPendente: false, biometria: false })
 
 function espelhar() {
   acesso.configurada = !!registro
@@ -102,6 +103,7 @@ export async function criarSenha(senha, apelido) {
   mestraMemoria = mestra
   senhaMemoria = senha
   acesso.desbloqueado = true
+  await reembrulharBiometria()
 }
 export function definirApelido(a) {
   const e = validarApelido(a)
@@ -160,6 +162,77 @@ export function iniciarAutoBloqueio() {
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') { if (!saiu) saiu = Date.now() } else voltar() })
 }
 
+// ---- Desbloqueio por digital, rosto ou PIN do celular (WebAuthn) ----
+// A biometria só AUTORIZA a tela de entrada. Ao ativar (com o app já aberto pela senha), o app cria uma chave que ele
+// mesmo não consegue exportar e guarda a senha trancada por ela. Biometria aprovada -> abre a senha -> passa pela
+// mesma conferência da senha. A senha continua valendo sempre; trocar a senha reembrulha.
+const CHAVE_BIO = 'airmed:bio'
+let registroBio = null
+export async function biometriaSuportada() {
+  try {
+    if (!window.PublicKeyCredential || !navigator.credentials || !crypto.subtle) return false
+    return await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()
+  } catch { return false }
+}
+export async function carregarBiometria() {
+  try { registroBio = (await kvGet(CHAVE_BIO)) || null } catch { registroBio = null }
+  if (registroBio && !(registroBio.chave && registroBio.ct && registroBio.cred)) registroBio = null
+  acesso.biometria = !!registroBio
+  return !!registroBio
+}
+// Espelho rápido: a tela de entrada decide o botão antes de o IndexedDB responder.
+export const biometriaMarcada = () => { try { return localStorage.getItem(CHAVE_BIO) === '1' } catch { return false } }
+const trancar = async (senha, chave, iv) => new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, chave, enc.encode(senha)))
+async function marcarBio(reg) {
+  registroBio = reg
+  try { reg ? localStorage.setItem(CHAVE_BIO, '1') : localStorage.removeItem(CHAVE_BIO) } catch { /* ignora */ }
+  try { await kvSet(CHAVE_BIO, reg) } catch { /* sem IndexedDB */ }
+  acesso.biometria = !!reg
+}
+async function reembrulharBiometria() {
+  if (!registroBio || senhaMemoria === null) return
+  try { const iv = aleatorio(12); await marcarBio({ ...registroBio, iv, ct: await trancar(senhaMemoria, registroBio.chave, iv) }) } catch { await desativarBiometria() }
+}
+export async function ativarBiometria() {
+  if (senhaMemoria === null) throw new Error('Desbloqueie o app com a senha antes de ativar.')
+  if (!(await biometriaSuportada())) throw new Error('Este aparelho não oferece desbloqueio por biometria.')
+  let cred
+  try {
+    cred = await navigator.credentials.create({ publicKey: {
+      challenge: aleatorio(32),
+      rp: { name: 'Airmed' },
+      user: { id: aleatorio(16), name: acesso.apelido || 'usuario', displayName: acesso.apelido || 'Usuário' },
+      pubKeyCredParams: [{ type: 'public-key', alg: -7 }, { type: 'public-key', alg: -257 }],
+      authenticatorSelection: { authenticatorAttachment: 'platform', userVerification: 'required', residentKey: 'discouraged' },
+      timeout: 60000, attestation: 'none',
+    } })
+  } catch (e) { throw new Error(e?.name === 'NotAllowedError' ? 'Ativação cancelada.' : 'Não foi possível ativar a biometria neste aparelho.') }
+  if (!cred) throw new Error('Não foi possível ativar a biometria.')
+  const chave = await crypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt'])
+  const iv = aleatorio(12)
+  await marcarBio({ v: 1, cred: new Uint8Array(cred.rawId), chave, iv, ct: await trancar(senhaMemoria, chave, iv), criada_em: new Date().toISOString() })
+}
+export async function desativarBiometria() { await marcarBio(null) }
+export async function desbloquearComBiometria() {
+  if (!registroBio) await carregarBiometria()
+  if (!registroBio) throw new Error('A biometria não está ativada neste aparelho.')
+  try {
+    await navigator.credentials.get({ publicKey: {
+      challenge: aleatorio(32), timeout: 60000, userVerification: 'required',
+      allowCredentials: [{ type: 'public-key', id: registroBio.cred, transports: ['internal'] }],
+    } })
+  } catch (e) { throw new Error(e?.name === 'NotAllowedError' ? 'Desbloqueio cancelado. Use a senha ou PIN.' : 'Não foi possível usar a biometria. Use a senha ou PIN.') }
+  let senha
+  try { senha = new TextDecoder().decode(await crypto.subtle.decrypt({ name: 'AES-GCM', iv: registroBio.iv }, registroBio.chave, registroBio.ct)) }
+  catch { await desativarBiometria(); throw new Error('A biometria precisa ser ativada de novo. Use a senha ou PIN.') }
+  if (!(await conferirSenha(senha))) { await desativarBiometria(); throw new Error('A senha mudou. Use a senha ou PIN e ative a biometria de novo.') }
+  zerarFalhas()
+  senhaMemoria = senha
+  mestraMemoria = await desembrulharMestra(registro.ms, senha)
+  acesso.desbloqueado = true
+  return true
+}
+
 // ---- Chave de recuperação (24 caracteres, sem 0/O nem 1/I) ----
 const ALFABETO = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
 export function gerarCodigo() {
@@ -187,7 +260,7 @@ export async function gerarNovoCodigo() {
 export const temCodigoVisivel = () => !!(registro?.rec && registro?.rec_cod)
 export async function verCodigoAtual(senha) {
   if (!(await verificarSenha(senha))) throw new Error('Senha ou PIN incorreto.')
-  if (!registro.rec) throw new Error('Ainda não há chave de recuperação. Gere uma nova.')
+  if (!registro.rec) throw new Error('Ainda não há código de recuperação. Gere um novo.')
   if (!registro.rec_cod || !mestraMemoria) throw new Error('A chave atual não pode ser mostrada neste aparelho. Gere uma nova.')
   try {
     const pt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: deB64(registro.rec_cod.iv) }, await chaveDaMestra(['decrypt']), deB64(registro.rec_cod.ct))
@@ -198,17 +271,17 @@ export function confirmarCodigoGuardado() { if (registro) gravarRegistro({ ...re
 
 // "Esqueci a senha": a chave de recuperação abre a chave mestra deste aparelho e libera criar uma senha nova.
 export async function entrarComCodigo(codigo) {
-  if (!codigoValido(codigo)) throw new Error('Confira a chave: são 24 letras e números (ex.: ABCD-EFGH-…).')
+  if (!codigoValido(codigo)) throw new Error('Confira o código: são 24 letras e números (ex.: ABCD-EFGH-…).')
   const espera = esperaAteTentar()
   if (espera > 0) throw new Error(`Muitas tentativas. Aguarde ${espera}s.`)
   const m = registro?.rec ? await desembrulharMestra(registro.rec, normalizarCodigo(codigo)) : null
-  if (!m) { registrarFalha(); throw new Error(registro && !registro.rec ? 'Este aparelho ainda não tem chave de recuperação. Restaure um backup com a chave.' : 'Chave de recuperação incorreta.') }
+  if (!m) { registrarFalha(); throw new Error(registro && !registro.rec ? 'Este aparelho ainda não tem código de recuperação. Restaure um backup com o código.' : 'Código de recuperação incorreto.') }
   zerarFalhas()
   mestraMemoria = m
   return true
 }
 export async function redefinirSenhaComCodigo(nova) {
-  if (!mestraMemoria) throw new Error('Entre com a chave de recuperação primeiro.')
+  if (!mestraMemoria) throw new Error('Entre com o código de recuperação primeiro.')
   await criarSenha(nova)
 }
 
@@ -226,6 +299,7 @@ export function aplicarRecAdotado() {
 export function apagarAcesso() {
   for (const k of [CHAVE, FALHAS, AUTO]) guarda.tirar(k)
   registro = null; senhaMemoria = null; mestraMemoria = null; adotarRec = undefined
+  marcarBio(null).catch(() => {})
   acesso.desbloqueado = false
   espelhar()
 }

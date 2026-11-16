@@ -1,6 +1,6 @@
 import { reactive } from 'vue'
 
-export const ui = reactive({ tela: 'hoje', janelas: [], alarme: null, aviso: null, codigoNovo: null })
+export const ui = reactive({ tela: 'hoje', janelas: [], alarme: null, aviso: null, liberado: false })
 
 export function irPara(tela) {
   ui.tela = tela

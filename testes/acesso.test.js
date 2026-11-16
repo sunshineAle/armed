@@ -60,7 +60,7 @@ describe('chave de recuperação', () => {
     expect(A.acesso.recPendente).toBe(true)
     A.confirmarCodigoGuardado()
     expect(A.acesso.recPendente).toBe(false)
-    await expect(A.entrarComCodigo('AAAA-AAAA-AAAA-AAAA-AAAA-AAAA')).rejects.toThrow('incorreta')
+    await expect(A.entrarComCodigo('AAAA-AAAA-AAAA-AAAA-AAAA-AAAA')).rejects.toThrow(/incorret/)
     await A.entrarComCodigo(codigo)
     await A.redefinirSenhaComCodigo('senha-nova-2')
     expect([...A.chaveMestraDaSessao()]).toEqual(mestra)

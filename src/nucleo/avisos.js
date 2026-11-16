@@ -5,6 +5,7 @@ import { diaComSituacao } from './motor.js'
 import { minutos, horaCurta } from './tempo.js'
 import { ui, avisar } from './ui.js'
 import { acesso } from './acesso.js'
+import { verificarLembrete } from './backupRapido.js'
 
 const RECENTE = 10 // minutos: mais velho que isso não abre alarme ao entrar no app
 
@@ -18,6 +19,7 @@ export function iniciarRelogio() {
 
 export function verificar() {
   if (!estado.iniciado) return
+  verificarLembrete()
   const dia = hoje.value
   for (const k of Object.keys(estado.avisados)) if (!k.includes(`:${dia}:`)) delete estado.avisados[k]
   const pendentes = diaComSituacao(estado, dia, dia, agoraMin.value)
@@ -36,7 +38,7 @@ export function verificar() {
     if (!voltou && agoraMin.value - minutos(hora) > RECENTE) continue
     const comAlarme = itens.filter((o) => o.tipo === 'rem' || o.nivel === 'cobrar')
     notificar(hora, itens)
-    if (!acesso.desbloqueado) continue
+    if (!acesso.desbloqueado || !ui.liberado) continue
     if (comAlarme.length) { if (!ui.alarme) ui.alarme = { data: dia, hora } }
     else avisar(`${horaCurta(hora)} · ${itens.map((o) => o.titulo).join(', ')}`)
   }

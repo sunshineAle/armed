@@ -137,18 +137,18 @@ function terminar() { ui.janelas = []; irPara('hoje'); avisar('Backup restaurado
         <button v-if="podeEnviar" type="button" class="botao contorno grande" @click="enviar">Guardar em arquivos ou outro app</button>
         <button type="button" class="botao contorno grande" @click="baixar">Baixar no aparelho</button>
         <div v-if="noDrive && nuvem.avisoRetencao" class="faixa info solta"><Icone nome="info" :tam="16" :traco="1.6" /><span>A cópia nova está guardada. As antigas ficaram todas: {{ nuvem.avisoRetencao }}</span></div>
-        <div class="faixa info solta"><Icone nome="info" :tam="16" :traco="1.6" /><span>O arquivo abre com a sua senha de acesso de hoje ou com a chave de recuperação. Guarde fora deste aparelho.</span></div>
+        <div class="faixa info solta"><Icone nome="info" :tam="16" :traco="1.6" /><span>O arquivo abre com a sua senha de acesso de hoje ou com o código de recuperação. Guarde fora deste aparelho.</span></div>
       </template>
     </template>
 
     <!-- RESTAURAR -->
     <template v-else-if="passo === 'abrir'">
-      <p class="texto">Escolha o arquivo do backup e digite a senha de acesso da época em que ele foi feito, ou a chave de recuperação.</p>
+      <p class="texto">Escolha o arquivo do backup e digite a senha de acesso da época em que ele foi feito, ou o código de recuperação.</p>
       <div class="campo">
         <span class="titulo">Arquivo do backup</span>
         <label class="botao tracejado arquivo">
           <Icone nome="mais" :tam="18" :traco="2" />{{ nomeArquivo || 'Escolher arquivo' }}
-          <input type="file" accept=".txt,.json,.airmed,text/plain,application/json" class="so-leitor" @change="escolher">
+          <input type="file" class="so-leitor" @change="escolher">
         </label>
         <button v-if="nuvemDisponivel()" type="button" class="botao contorno" :disabled="nuvem.ocupado" @pointerdown="prepararNuvem()" @click="buscarNoDrive">{{ nuvem.ocupado ? 'Buscando…' : 'Buscar no Google Drive' }}</button>
         <div v-if="copias" class="cartao lista-linhas">
@@ -157,7 +157,7 @@ function terminar() { ui.janelas = []; irPara('hoje'); avisar('Backup restaurado
         </div>
       </div>
       <div class="campo">
-        <label for="bk-abre">Senha do backup ou chave de recuperação</label>
+        <label for="bk-abre">Senha do backup ou código de recuperação</label>
         <div class="entrada"><input id="bk-abre" v-model="segredo" :type="mostra ? 'text' : 'password'" autocomplete="off" @keyup.enter="abrir"></div>
       </div>
       <label class="mostrar"><input v-model="mostra" type="checkbox"> Mostrar</label>

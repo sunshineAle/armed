@@ -25,7 +25,7 @@ describe('backup trancado pela chave mestra', () => {
     expect(r.pelaChave).toBe(true)
   })
   it('não abre com senha errada', async () => {
-    await expect(abrirBackup(await empacotar(dados), 'senha-errada')).rejects.toThrow('incorreta')
+    await expect(abrirBackup(await empacotar(dados), 'senha-errada')).rejects.toThrow(/incorret/)
   })
   it('por fora não aparece remédio, apelido nem senha', async () => {
     const texto = await empacotar(dados)
@@ -37,7 +37,7 @@ describe('backup trancado pela chave mestra', () => {
     await A.alterarSenha('senha-de-acesso', 'senha-trocada')
     expect((await abrirBackup(texto, 'senha-de-acesso')).dados).toEqual(dados)
     expect((await abrirBackup(texto, codigo)).dados).toEqual(dados)
-    await expect(abrirBackup(texto, 'senha-trocada')).rejects.toThrow('incorreta')
+    await expect(abrirBackup(texto, 'senha-trocada')).rejects.toThrow(/incorret/)
     expect((await abrirBackup(await empacotar(dados), 'senha-trocada')).dados).toEqual(dados)
   })
   it('aparelho novo adota a mesma chave mestra e a mesma chave de recuperação', async () => {
