@@ -23,7 +23,8 @@ npm run build     # compila para dist/
 | `src/nucleo/motor.js` | Motor de lembrete compartilhado (repetição, situação, semana, estoque, SOS) |
 | `src/nucleo/dados.js` | Guarda os dados no aparelho; marcar, desfazer, adiar |
 | `src/nucleo/avisos.js` | Relógio, notificação discreta e abertura do alarme |
-| `src/nucleo/backup.js` | Backup em arquivo criptografado (PBKDF2-SHA-256, 600 mil voltas + AES-GCM 256). A senha nunca é guardada |
+| `src/nucleo/acesso.js` | Acesso no aparelho, na lógica do Dagda Capital: apelido, senha ou PIN (só o hash fica guardado), chave mestra e chave de recuperação de 24 caracteres, espera depois de erros, bloqueio automático |
+| `src/nucleo/backup.js` | Backup em arquivo, compactado e trancado pela chave mestra (AES-GCM 256). Abre com a senha de acesso da época ou com a chave de recuperação |
 | `src/nucleo/demo.js` | Dados fictícios |
 | `src/telas/` | Hoje, Remédios, Rotinas, Ajustes, Entrada |
 | `src/janelas/` | Janelas por cima: cadastros, detalhe, "+", alarme |
@@ -35,5 +36,6 @@ O Airmed é organizador e lembrete. Nunca calcula, sugere nem bloqueia dose. SOS
 ## Limites desta versão
 
 - O lembrete só toca com o app aberto no navegador. Alarme em tela cheia com o celular bloqueado: só na capa Android.
-- Backup só em arquivo (manual). Sem envio automático para nuvem, sem Google Agenda, só o tema Ervas.
+- Backup só em arquivo (manual). Google Drive, pasta do PC e biometria ainda não entraram. Sem Google Agenda, só o tema Ervas.
+- Como no Dagda Capital, a senha protege a entrada do app e tranca os backups; os dados no navegador do aparelho não são criptografados.
 - Entrada, janela do "+" e Ajustes são provisórios (telas ainda não desenhadas).

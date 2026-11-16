@@ -11,9 +11,9 @@ import Icone from '../componentes/Icone.vue'
     <h1>Airmed</h1>
     <p class="apoio">Versão de teste. Remédios e rotinas num lugar só, com lembretes. Os dados ficam só neste aparelho.</p>
     <div class="entrada-botoes">
-      <button type="button" class="botao cheio grande" @click="comecar(true)">Testar com dados fictícios</button>
-      <button type="button" class="botao neutro grande" @click="comecar(false)">Começar do zero</button>
+      <button type="button" class="botao cheio grande" @click="comecar(false)">Criar meu acesso</button>
       <button type="button" class="botao contorno grande" @click="abrir('backup', { modo: 'restaurar' })">Restaurar meu Airmed</button>
+      <button type="button" class="botao neutro grande" @click="comecar(true)">Testar com dados fictícios</button>
     </div>
     <p class="nota">O Airmed organiza e lembra. Ele não indica nem calcula dose: siga sempre a orientação do seu médico ou da bula.</p>
   </main>

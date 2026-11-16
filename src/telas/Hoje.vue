@@ -5,7 +5,8 @@ import { diaComSituacao, resumoSemana, fimDaJanela } from '../nucleo/motor.js'
 import { minutos, deMin, dataLonga, diaSemana, horaDe, horaReal, duracao } from '../nucleo/tempo.js'
 import { forma } from '../nucleo/formas.js'
 import { abrir, avisar } from '../nucleo/ui.js'
-import { diasSemBackup } from '../nucleo/backup.js'
+import { diasSemBackup, backupDevido } from '../nucleo/backup.js'
+import { acesso } from '../nucleo/acesso.js'
 import Icone from '../componentes/Icone.vue'
 import Anel from '../componentes/Anel.vue'
 
@@ -13,10 +14,11 @@ const feitosAbertos = ref(false)
 // Lembrete de backup: depois de uma semana sem (ou nunca), para quem tem dados de verdade.
 const lembreteBackup = computed(() => {
   if (estado.demo || !(estado.remedios.length + estado.rotinas.length)) return ''
+  if (!backupDevido(estado.backup, relogio.agora)) return ''
   const d = diasSemBackup(estado.backup?.ultimo, relogio.agora)
-  if (d === null) return 'Você ainda não fez backup. Se este aparelho se perder, os dados vão junto.'
-  return d >= 7 ? `Faz ${d} dias que você não faz backup.` : ''
+  return d === null ? 'Hora do primeiro backup. Se este aparelho se perder, os dados vão junto.' : `Faz ${d} dias que você não faz backup.`
 })
+const chavePendente = computed(() => !estado.demo && acesso.recPendente)
 const itens = computed(() => diaComSituacao(estado, hoje.value, hoje.value, agoraMin.value))
 const resolvido = (s) => s === 'feito' || s === 'pulado'
 const total = computed(() => itens.value.length)
@@ -118,6 +120,11 @@ const icone = (l) => (l.tipo === 'rem' ? 'capsula' : 'rotina')
     <span class="num apoio hora-agora">{{ horaReal(horaDe(relogio.agora)) }}</span>
   </header>
 
+  <div v-if="chavePendente" class="faixa info solta lembrete-backup">
+    <Icone nome="info" :tam="16" :traco="1.6" />
+    <span style="flex:1">Você ainda não guardou a chave de recuperação.</span>
+    <button type="button" @click="abrir('seguranca', { modo: 'chave' })">Ver a chave</button>
+  </div>
   <div v-if="lembreteBackup" class="faixa info solta lembrete-backup">
     <Icone nome="info" :tam="16" :traco="1.6" />
     <span style="flex:1">{{ lembreteBackup }}</span>

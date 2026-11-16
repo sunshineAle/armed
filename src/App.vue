@@ -14,9 +14,13 @@ import CadastroRotina from './janelas/CadastroRotina.vue'
 import Detalhe from './janelas/Detalhe.vue'
 import Alarme from './janelas/Alarme.vue'
 import Backup from './janelas/Backup.vue'
+import Seguranca from './janelas/Seguranca.vue'
+import Acesso from './telas/Acesso.vue'
+import ChaveNova from './telas/ChaveNova.vue'
+import { acesso } from './nucleo/acesso.js'
 
 const TELAS = { hoje: Hoje, remedios: Remedios, rotinas: Rotinas, ajustes: Ajustes }
-const JANELAS = { mais: Mais, remedio: CadastroRemedio, rotina: CadastroRotina, detalhe: Detalhe, backup: Backup }
+const JANELAS = { mais: Mais, remedio: CadastroRemedio, rotina: CadastroRotina, detalhe: Detalhe, backup: Backup, seguranca: Seguranca }
 const itens = [
   { id: 'hoje', nome: 'Hoje', icone: 'hoje' },
   { id: 'remedios', nome: 'Remédios', icone: 'capsula' },
@@ -40,6 +44,8 @@ watchEffect(() => {
 
 <template>
   <Entrada v-if="!estado.iniciado" />
+  <Acesso v-else-if="!estado.demo && (!acesso.configurada || !acesso.desbloqueado)" />
+  <ChaveNova v-else-if="ui.codigoNovo" />
   <div v-else class="casca">
     <div class="faixa-teste">Versão de teste{{ estado.demo ? ' · dados fictícios' : '' }}</div>
     <main class="conteudo">
@@ -57,10 +63,10 @@ watchEffect(() => {
       </template>
     </nav>
     <Alarme v-if="ui.alarme" :data="ui.alarme.data" :hora="ui.alarme.hora" />
-    <div v-if="ui.aviso" class="aviso" role="status">
-      <span>{{ ui.aviso.texto }}</span>
-      <button v-if="ui.aviso.acao" type="button" @click="ui.aviso.acao.fazer(); ui.aviso = null">{{ ui.aviso.acao.nome }}</button>
-    </div>
+  </div>
+  <div v-if="ui.aviso" class="aviso" role="status">
+    <span>{{ ui.aviso.texto }}</span>
+    <button v-if="ui.aviso.acao" type="button" @click="ui.aviso.acao.fazer(); ui.aviso = null">{{ ui.aviso.acao.nome }}</button>
   </div>
   <component :is="JANELAS[j.nome]" v-for="j in ui.janelas" :key="j.id" v-bind="j.props" />
 </template>

@@ -12,13 +12,13 @@ const vazio = () => ({
   adiados: {}, avisados: {},
   categorias: [...CATEGORIAS_PADRAO],
   prefs: { modo: 'sistema', nomeNaNotificacao: false, vista: 'periodo' },
-  backup: { ultimo: null },
+  backup: { ultimo: null, ultimoDestino: null, intervalo: 'semanal', desde: null },
 })
 
 function carregar() {
   try {
     const salvo = JSON.parse(localStorage.getItem(CHAVE))
-    if (salvo?.versao === 1) return { ...vazio(), ...salvo, prefs: { ...vazio().prefs, ...salvo.prefs } }
+    if (salvo?.versao === 1) return { ...vazio(), ...salvo, prefs: { ...vazio().prefs, ...salvo.prefs }, backup: { ...vazio().backup, ...salvo.backup } }
   } catch { /* começa do zero */ }
   return vazio()
 }
@@ -98,25 +98,28 @@ export function comecar(comDemo) {
   Object.assign(estado, vazio(), comDemo ? montarDemo(new Date()) : {}, {
     iniciado: true, demo: !!comDemo, prefs: estado.prefs,
   })
+  estado.backup.desde = new Date().toISOString()
 }
 export function apagarTudo() {
   Object.assign(estado, vazio(), { prefs: estado.prefs })
 }
 
 // O que vai para o arquivo de backup: tudo, menos o que é só deste momento (adiados e avisos do dia).
-export function paraBackup() {
+// O apelido viaja DENTRO do conteúdo trancado, nunca por fora.
+export function paraBackup(apelido = '') {
   const { adiados, avisados, backup, ...resto } = JSON.parse(JSON.stringify(estado))
-  return resto
+  return { ...resto, perfil: { apelido } }
 }
-export function backupFeito(quando = new Date()) {
-  estado.backup = { ultimo: quando.toISOString() }
+export function backupFeito(destino, quando = new Date()) {
+  estado.backup = { ...estado.backup, ultimo: quando.toISOString(), ultimoDestino: destino }
 }
 // Troca o que está no aparelho pelo conteúdo do backup.
 export function restaurar(dados, feitoEm) {
-  Object.assign(estado, vazio(), dados, {
-    iniciado: true, adiados: {}, avisados: {},
+  const { perfil, ...resto } = dados
+  Object.assign(estado, vazio(), resto, {
+    iniciado: true, demo: false, adiados: {}, avisados: {},
     prefs: { ...vazio().prefs, ...(dados.prefs || {}) },
-    backup: { ultimo: feitoEm || null },
+    backup: { ...estado.backup, ultimo: feitoEm || null, desde: estado.backup.desde || new Date().toISOString() },
   })
 }
 export const temDados = () => estado.remedios.length + estado.rotinas.length > 0
