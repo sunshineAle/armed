@@ -46,9 +46,11 @@ export const caiDeMadrugada = (horas) => horas.some((h) => minutos(h) < 360)
 
 // No dia do cadastro, o que já tinha passado da hora não entra (não nasce "atrasado").
 function antesDeExistir(item, data, hora) {
-  if (!item.criadoEm || !hora) return false
+  if (!item.criadoEm) return false
   const d = new Date(item.criadoEm)
-  return data === dataISO(d) && minutos(hora) < minDe(d)
+  const dia = dataISO(d)
+  if (data < dia) return true // dias antes de o item existir
+  return !!hora && data === dia && minutos(hora) < minDe(d)
 }
 
 export function ocorrenciasDoDia(estado, data) {
@@ -96,6 +98,20 @@ export function situacao(oc, registro, hoje, agoraMin) {
   if (fim === null) return passado ? 'passou' : 'aberto'
   if (passado || agoraMin >= fim) return 'atrasado'
   return fim - agoraMin <= PERTO_DO_FIM ? 'atencao' : 'aberto'
+}
+
+// O que ficou sem resposta nos dias anteriores (até `dias` atrás), do mais recente para o mais antigo.
+// Entram remédios e rotinas que lembram ou cobram; "só marcar" não cobra, então não entra.
+export function pendentesAnteriores(estado, hoje, dias = 7) {
+  const lista = []
+  for (let n = 1; n <= dias; n++) {
+    const data = somaDias(hoje, -n)
+    for (const oc of diaComSituacao(estado, data, hoje, 0)) {
+      if (oc.registro || (oc.tipo === 'rot' && oc.nivel === 'marcar')) continue
+      lista.push(oc)
+    }
+  }
+  return lista
 }
 
 export function diaComSituacao(estado, data, hoje, agoraMin) {

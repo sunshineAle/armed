@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import {
-  ocorrenciasDoDia, situacao, remedioTemNoDia, horariosACada, caiDeMadrugada, resumoSemana,
+  ocorrenciasDoDia, situacao, pendentesAnteriores, remedioTemNoDia, horariosACada, caiDeMadrugada, resumoSemana,
   frequenciaTexto, duracaoTexto, estoqueInfo, terminado, diasTexto, sosInfo,
 } from '../src/nucleo/motor.js'
 import { doseTexto } from '../src/nucleo/formas.js'
@@ -140,6 +140,28 @@ describe('dia do cadastro', () => {
     const e = base({ remedios: [r] })
     expect(ocorrenciasDoDia(e, '2026-11-16').map((o) => o.hora)).toEqual(['22:00'])
     expect(ocorrenciasDoDia(e, '2026-11-17').map((o) => o.hora)).toEqual(['06:00', '14:00', '22:00'])
+  })
+})
+
+describe('ficou sem resposta', () => {
+  const r = rem({ inicio: '2026-11-10', criadoEm: new Date('2026-11-10T06:00:00').toISOString() })
+  const rotinas = [
+    { id: 'c', nome: 'Caminhar', dias: [0, 1, 2, 3, 4, 5, 6], hora: '18:00', nivel: 'cobrar', criadoEm: new Date('2026-11-17T06:00:00').toISOString() },
+    { id: 'l', nome: 'Ler', dias: [0, 1, 2, 3, 4, 5, 6], hora: null, nivel: 'marcar', criadoEm: new Date('2026-11-10T06:00:00').toISOString() },
+  ]
+  it('mostra o que passou sem registro nos dias anteriores, sem "só marcar"', () => {
+    const registros = [{ chave: 'rem:r1:2026-11-18:07:00', estado: 'feito' }, { chave: 'rem:r1:2026-11-17:20:00', estado: 'pulado' }]
+    const e = base({ remedios: [r], rotinas, registros })
+    const p = pendentesAnteriores(e, '2026-11-19', 2)
+    expect(p.map((o) => o.chave)).toEqual(['rot:c:2026-11-18:18:00', 'rem:r1:2026-11-18:20:00', 'rem:r1:2026-11-17:07:00', 'rot:c:2026-11-17:18:00'])
+  })
+  it('não inventa pendência de dias antes de o item existir', () => {
+    const e = base({ remedios: [r], rotinas })
+    expect(pendentesAnteriores(e, '2026-11-19', 7).some((o) => o.refId === 'c' && o.data < '2026-11-17')).toBe(false)
+  })
+  it('para em 7 dias', () => {
+    const e = base({ remedios: [r] })
+    expect(pendentesAnteriores(e, '2026-11-19').every((o) => o.data >= '2026-11-12')).toBe(true)
   })
 })
 

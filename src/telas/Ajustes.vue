@@ -51,7 +51,7 @@ function zerar() { apagarAcesso(); esquecerNuvem(); apagarTudo(); confirma.value
 </script>
 
 <template>
-  <header class="cabeca"><div><small>Versão de teste 0.7</small><h1>Ajustes</h1></div></header>
+  <header class="cabeca"><div><small>Versão de teste 0.8</small><h1>Ajustes</h1></div></header>
 
   <section v-if="!instalacao.instalado" class="grupo">
     <span class="rotulo">Instalar o app</span>

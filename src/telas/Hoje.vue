@@ -1,7 +1,7 @@
 <script setup>
 import { computed, ref } from 'vue'
 import { estado, relogio, hoje, agoraMin, marcar, desfazer, adiar, remedioPor } from '../nucleo/dados.js'
-import { diaComSituacao, resumoSemana, fimDaJanela } from '../nucleo/motor.js'
+import { diaComSituacao, resumoSemana, fimDaJanela, pendentesAnteriores } from '../nucleo/motor.js'
 import { minutos, deMin, dataLonga, diaSemana, horaDe, horaReal, duracao } from '../nucleo/tempo.js'
 import { forma } from '../nucleo/formas.js'
 import { abrir, avisar } from '../nucleo/ui.js'
@@ -11,6 +11,29 @@ import Icone from '../componentes/Icone.vue'
 import Anel from '../componentes/Anel.vue'
 
 const feitosAbertos = ref(false)
+// Ficou sem resposta nos dias anteriores: dá para confirmar depois se fez ou não.
+const anterioresAbertos = ref(true)
+const anteriores = computed(() => {
+  const grupos = []
+  for (const oc of pendentesAnteriores(estado, hoje.value)) {
+    let g = grupos[grupos.length - 1]
+    if (!g || g.data !== oc.data) { g = { data: oc.data, nome: nomeDia(oc.data), itens: [] }; grupos.push(g) }
+    g.itens.push(oc)
+  }
+  return grupos
+})
+const nAnteriores = computed(() => anteriores.value.reduce((n, g) => n + g.itens.length, 0))
+function nomeDia(data) {
+  const n = Math.round((new Date(hoje.value + 'T12:00') - new Date(data + 'T12:00')) / 864e5)
+  const dia = new Date(data + 'T12:00').toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'numeric' })
+  return n === 1 ? `Ontem · ${dia}` : dia
+}
+function confirmarDepois(oc, fez) {
+  marcar(oc, fez ? 'feito' : 'pulado', new Date(`${oc.data}T${oc.hora || '12:00'}:00`), { depois: true })
+  const quando = nomeDia(oc.data).split(' · ')[0].toLowerCase()
+  const texto = fez ? (oc.tipo === 'rem' ? `${oc.verbo.toLowerCase()}` : 'feito') : (oc.tipo === 'rem' ? 'não tomei' : 'não fiz')
+  avisar(`${oc.titulo} (${quando}): ${texto}`, { nome: 'Desfazer', fazer: () => desfazer(oc.chave) })
+}
 const perm = ref(permissao())
 async function ligarNotificacoes() {
   perm.value = await pedirPermissao()
@@ -201,6 +224,28 @@ const icone = (l) => (l.tipo === 'rem' ? 'capsula' : 'rotina')
     </div>
 
     <div>
+      <section v-if="nAnteriores" class="grupo anteriores">
+        <button type="button" class="recolhe" :aria-expanded="anterioresAbertos" @click="anterioresAbertos = !anterioresAbertos">
+          <Icone nome="info" :tam="20" :traco="1.6" />
+          <span>Ficou sem resposta <span class="apoio" style="font-weight:500">· {{ nAnteriores }} {{ nAnteriores === 1 ? 'item' : 'itens' }} dos últimos dias</span></span>
+          <span class="ver">{{ anterioresAbertos ? 'Ocultar' : 'Ver' }}<Icone nome="baixo" :tam="18" :traco="1.8" :style="{ transform: anterioresAbertos ? 'rotate(180deg)' : 'none' }" /></span>
+        </button>
+        <template v-if="anterioresAbertos">
+          <p class="nota">Se você fez e não marcou, confirme aqui. Some sozinho depois de 7 dias.</p>
+          <div v-for="g in anteriores" :key="g.data" class="cartao anterior-dia">
+            <span class="rotulo">{{ g.nome }}</span>
+            <div v-for="oc in g.itens" :key="oc.chave" class="anterior">
+              <span class="num hora">{{ oc.hora || '—' }}</span>
+              <span class="anterior-nome">{{ oc.titulo }} <small>{{ oc.detalhe }}</small></span>
+              <span class="anterior-botoes">
+                <button type="button" class="botao contorno pequeno" :aria-label="`${oc.tipo === 'rem' ? oc.verbo : 'Fiz'}: ${oc.titulo}, ${g.nome}, ${oc.hora || 'sem horário'}`" @click="confirmarDepois(oc, true)">{{ oc.tipo === 'rem' ? oc.verbo : 'Fiz' }}</button>
+                <button type="button" class="botao suave pequeno" :aria-label="`${oc.tipo === 'rem' ? 'Não tomei' : 'Não fiz'}: ${oc.titulo}, ${g.nome}, ${oc.hora || 'sem horário'}`" @click="confirmarDepois(oc, false)">{{ oc.tipo === 'rem' ? 'Não tomei' : 'Não fiz' }}</button>
+              </span>
+            </div>
+          </div>
+        </template>
+      </section>
+
       <div class="linha-titulo">
         <h2>Linha do dia</h2>
         <div class="segmento pequeno" role="group" aria-label="Ver o dia por">
@@ -270,6 +315,15 @@ const icone = (l) => (l.tipo === 'rem' ? 'capsula' : 'rotina')
 .riscado { text-decoration: line-through; }
 .selo.pequeno { width: 20px; height: 20px; }
 
+.anteriores { margin-bottom: 8px; }
+.anterior-dia { padding: 10px 6px 4px 12px; display: flex; flex-direction: column; }
+.anterior-dia .rotulo { padding: 0 0 4px; text-transform: none; letter-spacing: 0; font-size: 13px; }
+.anterior { display: flex; align-items: center; gap: 8px; min-height: 52px; flex-wrap: wrap; }
+.anterior .hora { width: 40px; flex-shrink: 0; font-size: 13px; font-weight: 700; color: var(--apoio); }
+.anterior-nome { flex: 1; min-width: 120px; font-size: 15px; font-weight: 650; }
+.anterior-nome small { font-size: 13px; font-weight: 500; color: var(--apoio); }
+.anterior-botoes { display: flex; gap: 6px; margin-left: auto; }
+.botao.pequeno { min-height: 40px; padding: 0 12px; font-size: 14px; }
 .linha-titulo { display: flex; align-items: center; justify-content: space-between; padding-top: 4px; }
 .linha-titulo h2 { font-size: 17px; font-weight: 800; }
 .linha-titulo .segmento { flex-shrink: 0; }

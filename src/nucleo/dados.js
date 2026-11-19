@@ -38,11 +38,13 @@ export const rotinaPor = (id) => estado.rotinas.find((r) => r.id === id)
 export const registroDe = (chave) => estado.registros.find((g) => g.chave === chave) || null
 
 // em: hora real em que foi feito (Date). Guarda a hora real, não a marcada.
-export function marcar(oc, comoFoi, em = new Date()) {
+// depois: confirmado num dia seguinte; a hora real não é conhecida, então fica a hora marcada.
+export function marcar(oc, comoFoi, em = new Date(), { depois = false } = {}) {
   desfazer(oc.chave)
   estado.registros.push({
     chave: oc.chave, tipo: oc.tipo, refId: oc.refId, data: oc.data, hora: oc.hora,
     estado: comoFoi, em: em.toISOString(), horaReal: horaDe(em), qtd: oc.qtd ?? null,
+    ...(depois ? { confirmadoDepois: true } : {}),
   })
   if (oc.tipo === 'rem' && comoFoi === 'feito') mexerEstoque(oc.refId, -(oc.qtd ?? 1))
   delete estado.adiados[`${oc.data}:${oc.hora}`]
